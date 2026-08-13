@@ -1,0 +1,223 @@
+Functional Unit
+===============
+:revnumber: 0.1-draft.1
+:revdate: 2026-08-13
+:numbered:
+
+[cols="h,5"]
+|===
+| IP Name
+| `fu`
+
+| File
+| `rtl/fu.sv`
+
+| Version
+| 0.1.0
+
+| Project
+| UBC ASIC / Montréal Project
+
+| Engineer
+| Warrick Lo -- wlo@warricklo.net
+
+| Licence
+| CERN Open Hardware Licence Version 2 -- Permissive (CERN-OHL-P-2.0)
+|===
+
+[cols="1,1,1,1,4", options="header"]
+|===
+| Version
+| Date
+| Author(s)
+| Reviewer(s)
+| Comments
+
+| 0.1-draft.1
+| 2026-08-13
+| Warrick Lo
+| --
+| Initial draft.
+|===
+
+Terminology
+-----------
+
+The key words "*MUST*", "*MUST NOT*", "*REQUIRED*", "*SHALL*", "*SHALL NOT*",
+"*SHOULD*", "*SHOULD NOT*", "*RECOMMENDED*", "*NOT RECOMMENDED*", "*MAY*",
+and "*OPTIONAL*" in this document are to be interpreted as described in
+https://rfc-editor.org/info/bcp14[BCP 14]
+{blank}[https://doi.org/10.17487/RFC2119[RFC2119]]
+{blank}[https://doi.org/10.17487/RFC8174[RFC8174]]
+when, and only when, they appear in all capitals, as shown here.
+
+The term "slice" *SHALL* refer to a fixed-width, non-overlapping portion of
+a word, `SLICE_WIDTH` bits wide. A word is divided into `NUM_SLICES` slices.
+The exact bit range for a slice *SHALL* be interpreted as described in
+requirement `REQ-REGFILE-020`.
+
+The term "operation" *SHALL* refer to one full execution of `fu_op_i`,
+from acceptance (`valid_i` and `ready_o` both asserted) to completion
+(`ready_o reasserted).
+
+IP Overview
+-----------
+
+A slice-serial functional unit (FU) for a RISC-V core, operating on one slice
+of each operand per cycle. The module accepts an operation over a ready/valid
+handshake, processes it over multiple cycles as driven by an externally
+supplied cycle count, and writes the result back to the register file
+by driving that register file's write port control signals.
+
+
+Parameters
+----------
+
+.Parameters.
+[cols="2,1,1,3"]
+|===
+| Parameter | Type | Default | Description
+
+| `WORD_WIDTH`
+|`int unsigned`
+| 32
+| Full width of each register in bits.
+
+| `SLICE_WIDTH`
+| `int unsigned`
+| 8
+| Width of one access slice in bits.
+|===
+
+.Local parameters.
+[cols="2,2,3,1,3"]
+|===
+| Parameter | Type | Expression | Default | Description
+
+| `SLICE_COUNT`
+| `int unsigned`
+| stem:[\texttt{WORD\_WIDTH}/\texttt{SLICE\_WIDTH}]
+| 4
+| Slices per word.
+
+| `SLICE_ADDR_WIDTH`
+| `int unsigned`
+| stem:[\lceil\log_2{(\texttt{SLICE\_COUNT})}\rceil]
+| 2
+| Bits needed to address one slice.
+|===
+
+Interface Specification
+-----------------------
+
+=== Types
+
+.Types.
+[cols="1,2,3"]
+|===
+| Type | Definition | Description
+
+| `slice_t`
+| `logic [SLICE_WIDTH-1:0]`
+| One operand or result slice.
+
+| `fu_op_t`
+| As defined in `types.svh`.
+| Selects the operation performed on `a_i` and `b_i`.
+|===
+
+=== Ports
+
+.Port table.
+[cols="1,1,1,2"]
+|===
+| Port Name | Direction | Width | Description
+
+| `clk_i`
+| input
+| 1
+| Rising-edge write clock.
+
+| `rst_ni`
+| input
+| 1
+| Active-low synchronous reset.
+
+| `valid_i`
+| input
+| 1
+| Asserted by the requester to present a new operation.
+
+| `ready_o`
+| output
+| 1
+| Asserted when the module is idle and is able to accept a new operation
+from the requester. Will be asserted for at least one cycle when an
+operation is completed.
+
+| `cycle_i`
+| input
+| `SLICE_ADDR_WIDTH+1`
+| Externally driven cycle counter for the operation in progress. Sized with
+one extra bit as various operations require extra cycles for fetching
+and/or writeback.
+
+| `fu_op_i`
+| input
+| `fu_op_t`
+| Selects the FU operation. Sampled on acceptance.
+
+| `a_i`
+| input
+| `slice_t`
+| Operand A slice for the current cycle.
+
+| `b_i`
+| input
+| `slice_t`
+| Operand B slice for the current cycle.
+
+| `result_o`
+| output
+| `slice_t`
+| Result slice for the current cycle.
+
+| `rslice_o`
+| output
+| stem:[\lceil\log_2{(\texttt{NUM\_SLICES})}\rceil]
+| Selects which slice is read this cycle. Drives the register file's
+read slice selector.
+
+| `wslice_o`
+| output
+| stem:[\lceil\log_2{(\texttt{NUM\_SLICES})}\rceil]
+| Selects which slice is written to this cycle. Drives the register file's
+write slice selector.
+|===
+
+Design Constraints
+------------------
+
+[cols="1,4"]
+|===
+| Constraint ID | Description
+|===
+
+Design Requirements
+-------------------
+
+[cols="1,4"]
+|===
+| Requirement ID | Description
+|===
+
+Timing
+------
+
+[cols="1,2"]
+|===
+| Operation | Latency
+|===
+
+Architecture
+------------

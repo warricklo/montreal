@@ -193,13 +193,13 @@ Design Constraints
 |===
 | Constraint ID | Description
 
-| `DC-REGFILE-010`
+| `CON-REGFILE-010`
 | `WORD_WIDTH` *MUST* be a positive integer multiple of `SLICE_WIDTH`.
 
-| `DC-REGFILE-020`
+| `CON-REGFILE-020`
 | `ADDR_WIDTH` *MUST* be a positive integer.
 
-| `DC-REGFILE-030`
+| `CON-REGFILE-030`
 | `NUM_READ_PORTS` *MUST* be a positive integer.
 |===
 
