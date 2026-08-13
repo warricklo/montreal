@@ -14,6 +14,10 @@
 
 `default_nettype none
 
+`include "config_pkg.sv"
+
+import config_pkg::*;
+
 /*
  * Tiny Tapeout top-level wrapper.
  *
@@ -21,10 +25,6 @@
  *            exactly. Do not modify the port names.
  */
 /* verilog_lint: waive module-filename */
-
-`include "config_pkg.sv"
-
-import config_pkg::*;
 
 module tt_top_ubc_montreal (
   /* verilog_lint: waive-start port-name-suffix */
@@ -42,7 +42,7 @@ module tt_top_ubc_montreal (
   output wire [7:0] uio_oe,
 
   /* Design enable signal. This will be 1 when the design is powered. */
-  input wire en,
+  input wire ena,
   /* Clock. */
   input wire clk,
   /* Active-low reset. */
