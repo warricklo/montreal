@@ -12,7 +12,7 @@ Microarchitecture Specification (MAS)
 | Montreal
 
 | Target
-| TinyTapeout
+| Tiny Tapeout
 
 | Verification
 | UVM + Formal

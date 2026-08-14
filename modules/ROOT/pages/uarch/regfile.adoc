@@ -87,7 +87,7 @@ Parameters
 |===
 | Parameter | Type | Default | Description
 
-| `WORD_WIDTH`
+| `XLEN`
 |`int unsigned`
 | 32
 | Full width of each register in bits.
@@ -121,7 +121,7 @@ Parameters
 
 | `NUM_SLICES`
 | `int unsigned`
-| stem:[\texttt{WORD\_WIDTH}/\texttt{SLICE\_WIDTH}]
+| stem:[\texttt{XLEN}/\texttt{SLICE\_WIDTH}]
 | 4
 | Slices per word.
 |===
@@ -194,7 +194,7 @@ Design Constraints
 | Constraint ID | Description
 
 | `CON-REGFILE-010`
-| `WORD_WIDTH` *MUST* be a positive integer multiple of `SLICE_WIDTH`.
+| `XLEN` *MUST* be a positive integer multiple of `SLICE_WIDTH`.
 
 | `CON-REGFILE-020`
 | `ADDR_WIDTH` *MUST* be a positive integer.
@@ -212,7 +212,7 @@ Design Requirements
 
 | `REQ-REGFILE-010`
 | The module *MUST* store stem:[\texttt{NUM\_WORDS} - 1] words,
-each `WORD_WIDTH` bits wide.
+each `XLEN` bits wide.
 
 | `REQ-REGFILE-020`
 | Slice stem:[k] of word stem:[n] *SHALL* correspond to bits
@@ -304,7 +304,7 @@ The register array is declared as a packed 2D structure:
 
 [source]
 ----
-logic [NUM_WORDS-1:1][WORD_WIDTH-1:0]
+logic [NUM_WORDS-1:1][XLEN-1:0]
 ----
 
 By default, this will be a stem:[15 \times 32] bit array.
@@ -368,7 +368,7 @@ slice in the same cycle. This is a behavioral change from the single shared
 `slice_sel_i` in version 0.2 of the regfile specification, which forced
 reads and writes onto the same slice.
 
-* There are no assertions to guard the `WORD_WIDTH % SLICE_WIDTH == 0` constraint;
+* There are no assertions to guard the `XLEN % SLICE_WIDTH == 0` constraint;
 violating it will leave the top bits of each word unreachable.
 
 * The write block contains a `dff-name-style` waiver to suppress a

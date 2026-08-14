@@ -23,7 +23,7 @@ Usage
 	* xref:page.adoc[Page Name]
 	------------------------------------------------------------------------
 
-3.  To add the page to the header menu, modify the UI template at
+3.  To add the page to the header menu, modify the UI template in
     'ui/supplemental_ui/partials/header-content.hbs':
 
 	ui/supplemental_ui/partials/header-content.hbs
