@@ -56,12 +56,12 @@ module tt_um_ubc_montreal (
 
   qspi_controller u_qspi_controller (
     /* Clock. */
-    .clk(),
+    .clk,
     /* Active-low reset. */
-    .rst_n(),
+    .rst_n,
 
     /* I/O: input path. */
-    .uio_in(),
+    .uio_in('0),
     /* I/O: output path. */
     .uio_out(),
     /* I/O: active high output enable. */

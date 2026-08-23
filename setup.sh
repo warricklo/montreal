@@ -38,8 +38,7 @@ sudo apt install python3.11 python3.11-venv
 
 sudo usermod -aG docker "$(whoami)"
 
-# Clone the tt-support-tools repository. Needs to be in
-# the 'tt' directory inside the project.
+# Clone the tt-support-tools repository. Needs to be in the 'tt' directory inside the project.
 git clone https://github.com/TinyTapeout/tt-support-tools tt
 
 # Patch tt-support-tools to use yowasp-yosys 0.66.
@@ -54,22 +53,19 @@ python3.11 -m venv "$XDG_DATA_HOME/tt-support-tools"
 . "$XDG_DATA_HOME/tt-support-tools/bin/activate"
 
 pip3.11 install -r tt/requirements.txt
-pipx install librelane yowasp-yosys
+pip3.11 install librelane
+pipx install yowasp-yosys
 
 # Create the user config.
 python3.11 tt/tt_tool.py --create-user-config
 # Run LibreLane with the docker group.
 sg docker -c "python3.11 tt/tt_tool.py --harden"
 
-printf "\n=================================================================\n\n"
-printf "%s: Setup has finished\n" "$0"
-
-printf "\n=================================================================\n\n"
-printf "Before running tt_tool.py, activate the environment by running\n"
+printf "\n──────────────────────────────── Setup Finished ────────────────────────────────\n\n"
+printf "Before running tt_tool.py, activate the environment by running:\n\n"
 printf "\t%s/tt-support-tools/bin/activate\n\n" "$XDG_DATA_HOME"
-printf "If this is your first time running the script, please log out of\n"
-printf "this shell session and relogin.\n\n"
-printf "To regenerate the LibreLane configuration file, run:\n"
+printf "To regenerate the LibreLane configuration file, run:\n\n"
 printf "\tpython3.11 tt/tt_tool.py --create-user-config\n\n"
-printf "To reharden, run:\n"
+printf "To reharden, run:\n\n"
 printf "\tpython3.11 tt/tt_tool.py --harden\n\n"
+printf "If this is your first time running the script, please relogin to this session.\n\n"

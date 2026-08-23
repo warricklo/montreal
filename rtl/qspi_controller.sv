@@ -44,4 +44,8 @@ module qspi_controller (
   logic       qspi_cs_n;
   logic [3:0] qspi_data;
 
+  /* Supress Yosys check errors. */
+  assign uio_out = '0;
+  assign uio_oe  = '0;
+
 endmodule : qspi_controller
