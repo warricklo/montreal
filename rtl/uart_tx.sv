@@ -31,6 +31,10 @@
  * dump format. It is a shared resource driven by the reset banner
  * generator, the dump sequencer and the bus register block through the
  * same start / data / busy handshake
+ *
+ * A request arriving while a frame is in flight is ignored and its byte
+ * is lost. drop_o pulses when that happens, so a caller that cares can
+ * record it
  */
 
 `include "config.svh"
@@ -44,6 +48,7 @@ module uart_tx (
   input  logic                   start_i,
   input  logic [SLICE_WIDTH-1:0] data_i,
   output logic                   busy_o,
+  output logic                   drop_o,
 
   output logic tx_o
 );
@@ -188,6 +193,15 @@ module uart_tx (
    * ------------------------------------------------------------------ */
 
   assign busy_o = (state_q != TX_IDLE);
+
+  /* Single-cycle pulse marking a request refused because a frame was
+   * already in flight. The byte is lost: it is not stored anywhere and
+   * the frame in progress is unaffected
+   *
+   * The condition is derived here rather than by the caller so that it
+   * cannot drift from the acceptance rule in the data path above. The
+   * bus register block latches it into the sticky DROPPED status bit */
+  assign drop_o = start_i && busy_o;
 
   /* The line is driven from a register to keep the path to the pad
    * short. This delays the whole frame by one clock cycle. Every bit is
