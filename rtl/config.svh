@@ -43,8 +43,14 @@ localparam int unsigned UART_CLK_HZ       = 50_000_000;
 localparam int unsigned UART_BAUD_RATE    = 115_200;
 localparam int unsigned UART_CLKS_PER_BIT = UART_CLK_HZ / UART_BAUD_RATE;
 
-/* SBY fails to evaluate $clog2() when the input is another localparam,
- * so the argument is written out in full. */
-localparam int unsigned UART_BAUD_CNT_WIDTH = $clog2(50_000_000 / 115_200);
+/* The bit period is programmable through the BITPERIOD register, so the
+ * counter is sized for the slowest baud rate we intend to support rather
+ * than the one selected at reset. Sixteen bits reaches roughly 763 baud
+ * from a 50 MHz clock */
+localparam int unsigned UART_BIT_PERIOD_WIDTH = 16;
+
+/* Reset value of the BITPERIOD register. One less than the number of
+ * clock cycles in a bit period, because the counter starts at zero */
+localparam int unsigned UART_BIT_PERIOD_RESET = UART_CLKS_PER_BIT - 1;
 
 `endif /* CONFIG_SVH */

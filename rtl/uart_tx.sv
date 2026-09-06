@@ -20,6 +20,13 @@
  * enable. No clock is gated or divided; the module remains in one clock
  * domain
  *
+ * The length of that period comes from bit_period_i, which the bus
+ * register block drives from the BITPERIOD register, so the baud rate can
+ * be corrected after fabrication if the clock is not the one assumed at
+ * reset. The value is compared every cycle and is not latched at the
+ * start of a frame, so it must be held stable while busy_o is high:
+ * changing it mid-frame stretches or truncates the period being timed
+ *
  * This module has no knowledge of the register file, the bus or the
  * dump format. It is a shared resource driven by the reset banner
  * generator, the dump sequencer and the bus register block through the
@@ -31,6 +38,8 @@
 module uart_tx (
   input logic clk_i,
   input logic rst_ni,
+
+  input logic [UART_BIT_PERIOD_WIDTH-1:0] bit_period_i,
 
   input  logic                   start_i,
   input  logic [SLICE_WIDTH-1:0] data_i,
@@ -58,7 +67,7 @@ module uart_tx (
    * ------------------------------------------------------------------ */
 
   /* Counts clock cycles within one bit period */
-  logic [UART_BAUD_CNT_WIDTH-1:0] baud_cnt_q;
+  logic [UART_BIT_PERIOD_WIDTH-1:0] baud_cnt_q;
 
   /* Counts data bits driven so far, 0 to 7 */
   logic [SLICE_SHIFT_WIDTH-1:0] bit_cnt_q;
@@ -79,14 +88,15 @@ module uart_tx (
    * Bit period generator                                               *
    * ------------------------------------------------------------------ */
 
-  /* Final baud counter value within a bit period */
-  localparam logic [UART_BAUD_CNT_WIDTH-1:0] LAST_BAUD_CNT =
-      UART_CLKS_PER_BIT - 1;
-
-  /* Single-cycle enable marking the end of a bit period */
+  /* Single-cycle enable marking the end of a bit period
+   *
+   * bit_period_i is one less than the number of clock cycles in a bit
+   * period, so the counter runs from zero to bit_period_i inclusive and
+   * the comparison needs no adjustment. A programmed value of zero makes
+   * every clock cycle a bit period; nothing here prevents it */
   logic shift_en;
 
-  assign shift_en = (baud_cnt_q == LAST_BAUD_CNT);
+  assign shift_en = (baud_cnt_q == bit_period_i);
 
   /* Held clear in TX_IDLE so that the start bit always receives a full
    * bit period, regardless of when start_i arrives */
@@ -154,6 +164,7 @@ module uart_tx (
   always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       shift_q <= '0;
+    /* A write arriving mid-frame will be dropped, silently */
     end else if ((state_q == TX_IDLE) && start_i) begin
       shift_q <= data_i;
     end else if ((state_q == TX_DATA) && shift_en) begin
@@ -180,8 +191,8 @@ module uart_tx (
 
   /* The line is driven from a register to keep the path to the pad
    * short. This delays the whole frame by one clock cycle. Every bit is
-   * delayed equally, so each bit period remains exactly
-   * UART_CLKS_PER_BIT cycles and the receiver is unaffected
+   * delayed equally, so each bit period remains exactly the programmed
+   * length and the receiver is unaffected
    *
    * Reset drives the line high: a low idle line is indistinguishable
    * from a break condition (DR-UART-011) */
