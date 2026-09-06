@@ -38,4 +38,13 @@ localparam int unsigned DATAPATH_CYCLE_WIDTH = SLICE_SEL_WIDTH + 1;
 localparam int unsigned WORD_SHIFT_WIDTH  = $clog2(XLEN);
 localparam int unsigned SLICE_SHIFT_WIDTH = $clog2(SLICE_WIDTH);
 
+/* Debug UART. See uarch/uart.adoc in the montreal-docs repository. */
+localparam int unsigned UART_CLK_HZ       = 50_000_000;
+localparam int unsigned UART_BAUD_RATE    = 115_200;
+localparam int unsigned UART_CLKS_PER_BIT = UART_CLK_HZ / UART_BAUD_RATE;
+
+/* SBY fails to evaluate $clog2() when the input is another localparam,
+ * so the argument is written out in full. */
+localparam int unsigned UART_BAUD_CNT_WIDTH = $clog2(50_000_000 / 115_200);
+
 `endif /* CONFIG_SVH */
