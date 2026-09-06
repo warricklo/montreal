@@ -29,14 +29,14 @@
 `include "config.svh"
 
 module uart_tx (
-  input logic clk,
-  input logic rst_n,
+  input logic clk_i,
+  input logic rst_ni,
 
-  input  logic                   start,
-  input  logic [SLICE_WIDTH-1:0] data,
-  output logic                   busy,
+  input  logic                   start_i,
+  input  logic [SLICE_WIDTH-1:0] data_i,
+  output logic                   busy_o,
 
-  output logic tx
+  output logic tx_o
 );
 
   /* ------------------------------------------------------------------ *
@@ -50,46 +50,53 @@ module uart_tx (
     TX_STOP  = 2'b11
   } tx_state_t;
 
-  tx_state_t state;
-  tx_state_t next_state;
+  tx_state_t state_q;
+  tx_state_t state_d;
 
   /* ------------------------------------------------------------------ *
    * Internal registers                                                 *
    * ------------------------------------------------------------------ */
 
   /* Counts clock cycles within one bit period */
-  logic [UART_BAUD_CNT_WIDTH-1:0] baud_cnt;
+  logic [UART_BAUD_CNT_WIDTH-1:0] baud_cnt_q;
 
   /* Counts data bits driven so far, 0 to 7 */
-  logic [SLICE_SHIFT_WIDTH-1:0] bit_cnt;
+  logic [SLICE_SHIFT_WIDTH-1:0] bit_cnt_q;
+
+  /* Index of the last data bit in a frame */
+  localparam logic [SLICE_SHIFT_WIDTH-1:0] LAST_DATA_BIT = SLICE_WIDTH - 1;
 
   /* High while the last data bit of the frame is being driven */
   logic last_bit;
 
-  assign last_bit = (bit_cnt == SLICE_SHIFT_WIDTH'(SLICE_WIDTH - 1));
+  assign last_bit = (bit_cnt_q == LAST_DATA_BIT);
 
   /* Holds the byte being transmitted, shifted right one bit per
-   * baud tick */
-  logic [SLICE_WIDTH-1:0] shift;
+   * shift_en pulse */
+  logic [SLICE_WIDTH-1:0] shift_q;
 
   /* ------------------------------------------------------------------ *
    * Bit period generator                                               *
    * ------------------------------------------------------------------ */
 
-  /* Single-cycle enable marking the end of a bit period */
-  logic baud_tick;
+  /* Final baud counter value within a bit period */
+  localparam logic [UART_BAUD_CNT_WIDTH-1:0] LAST_BAUD_CNT =
+      UART_CLKS_PER_BIT - 1;
 
-  assign baud_tick = (baud_cnt == UART_BAUD_CNT_WIDTH'(UART_CLKS_PER_BIT - 1));
+  /* Single-cycle enable marking the end of a bit period */
+  logic shift_en;
+
+  assign shift_en = (baud_cnt_q == LAST_BAUD_CNT);
 
   /* Held clear in TX_IDLE so that the start bit always receives a full
-   * bit period, regardless of when start arrives */
-  always_ff @(posedge clk) begin
-    if (!rst_n) begin
-      baud_cnt <= '0;
-    end else if ((state == TX_IDLE) || baud_tick) begin
-      baud_cnt <= '0;
+   * bit period, regardless of when start_i arrives */
+  always_ff @(posedge clk_i) begin
+    if (!rst_ni) begin
+      baud_cnt_q <= '0;
+    end else if ((state_q == TX_IDLE) || shift_en) begin
+      baud_cnt_q <= '0;
     end else begin
-      baud_cnt <= baud_cnt + 1'b1;
+      baud_cnt_q <= baud_cnt_q + 1'b1;
     end
   end
 
@@ -99,30 +106,30 @@ module uart_tx (
 
   always_comb begin
     /* Otherwise stay in current state */
-    next_state = state; 
+    state_d = state_q;
 
-    unique case (state)
+    unique case (state_q)
       /* Wait for a request */
       TX_IDLE: begin
-        if (start) next_state = TX_START;
+        if (start_i) state_d = TX_START;
       end
 
       /* Drive the start bit for one bit period */
       TX_START: begin
-        if (baud_tick) next_state = TX_DATA;
+        if (shift_en) state_d = TX_DATA;
       end
 
       /* Drive eight data bits, least significant first */
       TX_DATA: begin
-        if (baud_tick && last_bit) next_state = TX_STOP;
+        if (shift_en && last_bit) state_d = TX_STOP;
       end
 
       /* Drive the stop bit for one bit period */
       TX_STOP: begin
-        if (baud_tick) next_state = TX_IDLE;
+        if (shift_en) state_d = TX_IDLE;
       end
 
-      default: next_state = TX_IDLE;
+      default: state_d = TX_IDLE;
     endcase
   end
 
@@ -130,11 +137,11 @@ module uart_tx (
    * State register                                                     *
    * ------------------------------------------------------------------ */
 
-  always_ff @(posedge clk) begin
-    if (!rst_n) begin
-      state <= TX_IDLE;
+  always_ff @(posedge clk_i) begin
+    if (!rst_ni) begin
+      state_q <= TX_IDLE;
     end else begin
-      state <= next_state;
+      state_q <= state_d;
     end
   end
 
@@ -144,24 +151,24 @@ module uart_tx (
 
   /* Loaded on acceptance, then shifted right once per bit period so
    * that bit 0 always carries the bit currently being driven */
-  always_ff @(posedge clk) begin
-    if (!rst_n) begin
-      shift <= '0;
-    end else if ((state == TX_IDLE) && start) begin
-      shift <= data;
-    end else if ((state == TX_DATA) && baud_tick) begin
-      shift <= {1'b0, shift[SLICE_WIDTH-1:1]};
+  always_ff @(posedge clk_i) begin
+    if (!rst_ni) begin
+      shift_q <= '0;
+    end else if ((state_q == TX_IDLE) && start_i) begin
+      shift_q <= data_i;
+    end else if ((state_q == TX_DATA) && shift_en) begin
+      shift_q <= {1'b0, shift_q[SLICE_WIDTH-1:1]};
     end
   end
 
   /* Cleared outside TX_DATA so that every frame starts from bit 0 */
-  always_ff @(posedge clk) begin
-    if (!rst_n) begin
-      bit_cnt <= '0;
-    end else if (state != TX_DATA) begin
-      bit_cnt <= '0;
-    end else if (baud_tick) begin
-      bit_cnt <= bit_cnt + 1'b1;
+  always_ff @(posedge clk_i) begin
+    if (!rst_ni) begin
+      bit_cnt_q <= '0;
+    end else if (state_q != TX_DATA) begin
+      bit_cnt_q <= '0;
+    end else if (shift_en) begin
+      bit_cnt_q <= bit_cnt_q + 1'b1;
     end
   end
 
@@ -169,27 +176,31 @@ module uart_tx (
    * Outputs                                                            *
    * ------------------------------------------------------------------ */
 
-  assign busy = (state != TX_IDLE);
+  assign busy_o = (state_q != TX_IDLE);
 
-  /* The output is registered to keep the path to the pad short. This
-   * delays the whole frame by one clock cycle. Every bit is delayed
-   * equally, so each bit period remains exactly UART_CLKS_PER_BIT
-   * cycles and the receiver is unaffected
+  /* The line is driven from a register to keep the path to the pad
+   * short. This delays the whole frame by one clock cycle. Every bit is
+   * delayed equally, so each bit period remains exactly
+   * UART_CLKS_PER_BIT cycles and the receiver is unaffected
    *
    * Reset drives the line high: a low idle line is indistinguishable
    * from a break condition (DR-UART-011) */
-  always_ff @(posedge clk) begin
-    if (!rst_n) begin
-      tx <= 1'b1;
+  logic tx_q;
+
+  always_ff @(posedge clk_i) begin
+    if (!rst_ni) begin
+      tx_q <= 1'b1;
     end else begin
-      unique case (state)
-        TX_IDLE:  tx <= 1'b1;
-        TX_START: tx <= 1'b0;
-        TX_DATA:  tx <= shift[0];
-        TX_STOP:  tx <= 1'b1;
-        default:  tx <= 1'b1;
+      unique case (state_q)
+        TX_IDLE:  tx_q <= 1'b1;
+        TX_START: tx_q <= 1'b0;
+        TX_DATA:  tx_q <= shift_q[0];
+        TX_STOP:  tx_q <= 1'b1;
+        default:  tx_q <= 1'b1;
       endcase
     end
   end
 
-endmodule 
+  assign tx_o = tx_q;
+
+endmodule : uart_tx
