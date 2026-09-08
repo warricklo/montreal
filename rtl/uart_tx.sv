@@ -54,6 +54,34 @@ module uart_tx (
 );
 
   /* ------------------------------------------------------------------ *
+   * Parameter checks                                                   *
+   * ------------------------------------------------------------------ */
+
+  /* The payload is eight bits because the 8N1 frame format says so, not
+   * because the datapath is sliced eight bits wide. SLICE_WIDTH is
+   * reused here only because it currently happens to be eight; the two
+   * are eight for unrelated reasons and are free to diverge
+   *
+   * Neither check below costs hardware. They are duplicated because no
+   * one form is honoured everywhere: Verilator evaluates the
+   * elaboration-time $error under 'make lint', while simulators reach
+   * the $fatal at time zero instead. Note that neither currently runs
+   * in CI, which lints with Verible (a parser, so it elaborates
+   * nothing) and otherwise runs only the regfile formal task */
+  if (SLICE_WIDTH != 8) begin : gen_slice_width_check
+    $error("uart_tx: SLICE_WIDTH must be 8; the 8N1 payload width is ",
+        "fixed by the UART protocol and cannot follow the datapath");
+  end
+
+`ifndef SYNTHESIS
+  initial begin : p_slice_width_check
+    if (SLICE_WIDTH != 8) begin
+      $fatal(1, "uart_tx: SLICE_WIDTH must be 8, got %0d", SLICE_WIDTH);
+    end
+  end
+`endif
+
+  /* ------------------------------------------------------------------ *
    * State encoding                                                     *
    * ------------------------------------------------------------------ */
 
@@ -72,7 +100,7 @@ module uart_tx (
    * ------------------------------------------------------------------ */
 
   /* Counts clock cycles within one bit period */
-  logic [UART_BIT_PERIOD_WIDTH-1:0] baud_cnt_q;
+  logic [UART_BIT_PERIOD_WIDTH-1:0] cycle_cnt_q;
 
   /* Counts data bits driven so far, 0 to 7 */
   logic [SLICE_SHIFT_WIDTH-1:0] bit_cnt_q;
@@ -101,17 +129,17 @@ module uart_tx (
    * every clock cycle a bit period; nothing here prevents it */
   logic shift_en;
 
-  assign shift_en = (baud_cnt_q == bit_period_i);
+  assign shift_en = (cycle_cnt_q == bit_period_i);
 
   /* Held clear in TX_IDLE so that the start bit always receives a full
    * bit period, regardless of when start_i arrives */
   always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
-      baud_cnt_q <= '0;
+      cycle_cnt_q <= '0;
     end else if ((state_q == TX_IDLE) || shift_en) begin
-      baud_cnt_q <= '0;
+      cycle_cnt_q <= '0;
     end else begin
-      baud_cnt_q <= baud_cnt_q + 1'b1;
+      cycle_cnt_q <= cycle_cnt_q + 1'b1;
     end
   end
 
