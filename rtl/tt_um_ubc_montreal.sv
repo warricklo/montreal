@@ -44,7 +44,11 @@ module tt_um_ubc_montreal (
   /* verilog_lint: waive-stop port-name-suffix */
 );
 
-  /* Temporary output assignments. Unused pins must be assigned to 0. */
+  // IO Bus Handshaking
+  io_bus_req_t  core_req;
+  io_bus_resp_t core_resp;
+
+  /* TODO: Temporary output assignments. Unused pins must be assigned to 0. */
   assign uo_out  = ui_in + uio_in;
   assign uio_out = '0;
   assign uio_oe  = '0;
@@ -54,21 +58,16 @@ module tt_um_ubc_montreal (
 
   rv32e_core_wrapper u_rv32e_core_wrapper ();
 
-  io_wrapper u_io_wrapper ();
-
-  // TODO: move into io_wrapper
-  qspi_controller u_qspi_controller (
-    /* Clock. */
+  io_wrapper u_io_wrapper (
     .clk,
-    /* Active-low reset. */
     .rst_n,
 
-    /* I/O: input path. */
-    .uio_in('0),
-    /* I/O: output path. */
-    .uio_out(),
-    /* I/O: active high output enable. */
-    .uio_oe()
-  );
+    .core_req_i(core_req),
+    .core_resp_o(core_resp),
 
+    .uio_in (uio_in),
+    .uio_out(uio_out),
+    .uio_oe (uio_oe)
+  );
+  
 endmodule : tt_um_ubc_montreal

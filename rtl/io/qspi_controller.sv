@@ -31,6 +31,10 @@ module qspi_controller (
   /* Active-low reset. */
   input wire rst_n,
 
+  /* IO Bus Interconnect path */
+  input io_bus_req_t req_i,
+  output io_bus_resp_t resp_o,
+
   /* I/O: input path. */
   input  wire [7:0] uio_in,
   /* I/O: output path. */
@@ -38,7 +42,7 @@ module qspi_controller (
   /* I/O: active-high output enable. */
   output wire [7:0] uio_oe
   /* verilog_lint: waive-stop port-name-suffix */
-);
+ );
 
   logic       qspi_clk;
   logic       qspi_cs_n;
