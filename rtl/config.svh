@@ -38,4 +38,9 @@ localparam int unsigned DATAPATH_CYCLE_WIDTH = SLICE_SEL_WIDTH + 1;
 localparam int unsigned WORD_SHIFT_WIDTH  = $clog2(XLEN);
 localparam int unsigned SLICE_SHIFT_WIDTH = $clog2(SLICE_WIDTH);
 
+/* IO bus address map. Each region is 4KiB-aligned. */
+localparam int unsigned IO_ADDR_WIDTH = 32;
+localparam int unsigned IO_SLAVE_COUNT = 3;
+
+
 `endif /* CONFIG_SVH */

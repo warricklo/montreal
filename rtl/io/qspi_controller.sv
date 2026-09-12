@@ -1,42 +1,30 @@
-/* SPDX-License-Identifier: CERN-OHL-P-2.0 */
-
 /*
- * Copyright 2026 UBC ASIC contributors (Montreal project).
- * All rights reserved.
+ * Copyright 2026 Project Montreal contributors.
  *
- * Authors: Chathil Rajamanthree <chathil.rajaman3@gmail.com>
+ * SPDX-License-Identifier: CERN-OHL-P-2.0
  *
- * Interface between core and QSPI Pmod
+ * Project:     Montreal (RV32E SoC for Tiny Tapeout)
  *
- * https://onlinedocs.microchip.com/oxy/GUID-450989FA-38E4-4D68-AB61-15ADB29AD718-en-US-6/GUID-C2190631-B6F5-4CD7-B6DB-5267DC280E90_3.html
+ * Module:      qspi_controller
+ * Authors:     Chathil Rajamanthree <chathil.rajaman3@gmail.com>
+ *
+ * Description: Interface for the QSPI peripheral
  */
 
-/*
- * Pin mapping
- * ===========
- *
- * QSPI Serial CLK
- *
- * QSPI CS - Active Low
- *
- * QSPI IO_0
- * QSPI IO_1
- * QSPI IO_2
- * QSPI IO_3
- */
 module qspi_controller (
-  /* verilog_lint: waive-start port-name-suffix */
-  /* Clock. */
-  input wire clk,
-  /* Active-low reset. */
-  input wire rst_n,
+  /* Generic signals. */
+  input logic clk_i,
+  input logic rst_ni,
 
-  /* I/O: input path. */
-  input  wire [7:0] uio_in,
-  /* I/O: output path. */
-  output wire [7:0] uio_out,
-  /* I/O: active-high output enable. */
-  output wire [7:0] uio_oe
+  /* IO bus interconnect path. */
+  input  io_bus_req_t  req_i,
+  output io_bus_resp_t resp_o,
+
+  /* Chip-level pins. */
+  /* verilog_lint: waive-start port-name-suffix */
+  input  logic [7:0] uio_in,
+  output logic [7:0] uio_out,
+  output logic [7:0] uio_oe
   /* verilog_lint: waive-stop port-name-suffix */
 );
 
@@ -44,7 +32,7 @@ module qspi_controller (
   logic       qspi_cs_n;
   logic [3:0] qspi_data;
 
-  /* Supress Yosys check errors. */
+  /* Suppress Yosys check errors. */
   assign uio_out = '0;
   assign uio_oe  = '0;
 

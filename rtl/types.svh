@@ -39,4 +39,24 @@ typedef enum logic [3:0] {
   SLTU = 4'b0011
 } fu_op_t;
 
+/* IO bus handshaking. */
+
+/* Driven by master. */
+typedef struct packed {
+  logic        req_valid;
+  logic [31:0] req_addr;
+  logic        req_we;
+  logic [3:0]  req_wstrb;
+  logic [31:0] req_wdata;
+  logic        resp_ready;
+} io_bus_req_t;
+
+/* Driven by slave. */
+typedef struct packed {
+  logic        req_ready;
+  logic        resp_valid;
+  logic [31:0] resp_data;
+  logic        resp_err;
+} io_bus_resp_t;
+
 `endif /* TYPES_SVH */

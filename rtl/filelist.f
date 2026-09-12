@@ -8,4 +8,6 @@ rtl/core/regfile.sv
 rtl/core/shifter.sv
 rtl/core/simple_alu.sv
 rtl/io/io_wrapper.sv
+rtl/io/common_reg_bank.sv
+rtl/io/io_bus_interconnect.sv
 rtl/io/qspi_controller.sv
